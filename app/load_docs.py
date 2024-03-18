@@ -12,7 +12,6 @@ def load_documents(path):
     """
     Loads documents from the specified directory path, supporting load from PDF, Markdown, and HTML 
     documents by utilizing different loaders for each file type. 
-    
     Args:
         path (str): The path to the directory containing documents to load.
     Returns:
@@ -22,22 +21,25 @@ def load_documents(path):
     """
     if not os.path.exists(path):
         raise FileNotFoundError(f"The specified path does not exist: {path}")
-
-    # Initialize the loaders
-    markdown_loader = TextLoader()
-    pdf_loader = PyPDFLoader()
-
-    # Initialize the directory loader
-    directory_loader = DirectoryLoader()
-
+    # # Initialize the loaders
+    loaders = {
+        ".pdf": DirectoryLoader(
+            path,
+            glob="**/*.pdf",
+            loader_cls=PyPDFLoader,
+            show_progress=True,
+            use_multithreading=True,
+        ),
+        ".md": DirectoryLoader(
+            path,
+            glob="**/*.md",
+            loader_cls=TextLoader,
+            show_progress=True,
+        ),
+    }
     docs = []
-    # Load all files from the directory
-    for file in directory_loader.load(path):
-        # Check the file extension and use the appropriate loader
-        if file.endswith('.md'):
-            document = markdown_loader.load(file)
-        elif file.endswith('.pdf'):
-            document = pdf_loader.load(file)
-        docs.extend(document)
+    for file_type, loader in loaders.items():
+        print(f"Loading {file_type} files")
+        docs.extend(loader.load())
     # Return a list of loaded documents    
     return docs
