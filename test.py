@@ -1,7 +1,7 @@
 import ollama
 
 if __name__ == "__main__":
-    # model = ollama.pull("mistral")
+    print("Launching test")
     response = ollama.pull("llama2")
     
     print(response)

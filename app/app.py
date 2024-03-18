@@ -10,6 +10,8 @@ from models import check_if_model_is_available
 from load_docs import load_documents
 import argparse
 import sys
+import ollama
+
 
 
 TEXT_SPLITTER = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
@@ -93,6 +95,10 @@ def parse_arguments():
     
 
 if __name__ == "__main__":
-    args = parse_arguments()
-    print(f"MODEL set up : {args.model}")
-    global_execution_process(args.model, args.embedding_model, args.path)
+    # args = parse_arguments()
+    # print(f"MODEL set up : {args.model}")
+    # global_execution_process(args.model, args.embedding_model, args.path)
+    print("Launching Test")
+    response = ollama.generate(model='llama2', prompt='Why is the sky blue?')
+    print(response)
+    
