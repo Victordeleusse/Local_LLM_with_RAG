@@ -30,6 +30,7 @@ services:
     environment:
       - IS_PERSISTENT=TRUE
       - ALLOW_RESET=TRUE
+      - TOKENIZERS_PARALLELISM=TRUE
   
   app:
     build:

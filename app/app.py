@@ -6,6 +6,9 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 import chromadb
 from chromadb.config import Settings
+from langchain_community.embeddings.sentence_transformer import (
+    SentenceTransformerEmbeddings,
+)
 
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
@@ -15,6 +18,7 @@ from load_docs import load_documents
 import argparse
 import sys
 import ollama
+import uuid
 
 
 
@@ -47,11 +51,19 @@ def load_documents_into_database(model_name, documents_path):
     db = chromadb.HttpClient(host="chroma", port = 8000, settings=Settings(allow_reset=True, anonymized_telemetry=False))
     db.reset()
     collection = db.create_collection("my_collection")
+    for doc in documents:
+        collection.add(
+            ids=[str(uuid.uuid1())], metadatas=doc.metadata, documents=doc.page_content
+        )
     db4 = Chroma(
-    client=db,
-    collection_name="my_collection",
-    embedding_function=OllamaEmbeddings(model=model_name),
+        client=db,
+        collection_name="my_collection",
+        # embedding_function=OllamaEmbeddings(model=model_name),
+        embedding_function = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2"),
     )
+    user_input = "What is the date of the start of the battle"
+    docs = db4.similarity_search(user_input)
+    print(docs[0].page_content)
     # db = Chroma.from_documents(
     #     documents,
     #     OllamaEmbeddings(model=model_name),
@@ -78,23 +90,27 @@ def global_execution_process(llm_model_name, embedding_model_name, documents_pat
         print(e)
         sys.exit()
 
-    llm = Ollama(model=llm_model_name,callbacks=[StreamingStdOutCallbackHandler()],)
+    # llm = Ollama(model=llm_model_name,callbacks=[StreamingStdOutCallbackHandler()],)
 
-    qa_chain = RetrievalQA.from_chain_type(
-        llm,
-        retriever=db.as_retriever(search_kwargs={"k": 8}),
-        chain_type_kwargs={"prompt": PROMPT},
-    )
+    # qa_chain = RetrievalQA.from_chain_type(
+    #     llm,
+    #     retriever=db.as_retriever(search_kwargs={"k": 8}),
+    #     chain_type_kwargs={"prompt": PROMPT},
+    # )
 
-    while True:
-        try:
-            user_input = input("\n\nPlease enter your question (or type 'exit' to end): ")
-            if user_input.lower() == "exit":
-                break
-            docs = db.similarity_search(user_input)
-            qa_chain.invoke({"query": user_input})
-        except KeyboardInterrupt:
-            break
+    # while True:
+        # try:
+    # print("In progress ....")
+# try:
+#     user_input = input("\n\nPlease enter your question (or type 'exit' to end): ")
+#     if user_input.lower() == "exit":
+#         break
+    # user_input = "What is the date of the start of the battle"
+    # docs = db.similarity_search(user_input)
+    # print(docs[0].page_content)
+        #     qa_chain.invoke({"query": user_input})
+        # except KeyboardInterrupt:
+            # break
         
 def parse_arguments():
     parser = argparse.ArgumentParser(
