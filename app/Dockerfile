@@ -7,8 +7,10 @@ WORKDIR /app
 COPY requirements.txt /app/
 
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install ollama
+RUN pip install ollama 
 RUN pip install sentence-transformers
+RUN pip install langchain-nomic 
+RUN pip install langchain_community
 # RUN update-ca-certificates
 
 CMD ["python", "app.py"]
