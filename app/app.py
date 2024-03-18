@@ -40,7 +40,7 @@ You're helpful assistant, who answers questions based upon provided research in 
 
 PROMPT = PromptTemplate(template=PROMPT_TEMPLATE, input_variables=["context", "question"])
 
-def load_documents_into_database(llm_model_name, model_name, documents_path):
+def load_documents_into_database(model_name, documents_path):
     """
     Loads documents from the specified directory into the Chroma database after splitting the text into chunks.
     Returns: Chroma, database with loaded documents.
@@ -52,12 +52,13 @@ def load_documents_into_database(llm_model_name, model_name, documents_path):
 
     print("Creating embeddings and loading documents into Chroma")
     db = chromadb.HttpClient(host="chroma", port = 8000, settings=Settings(allow_reset=True, anonymized_telemetry=False))
-    db.reset()
-    collection = db.create_collection("my_collection")
+    # db.reset()
+    # collection = db.create_collection("my_collection")
+    collection = db.get_or_create_collection(name="my_collection")
     for doc in documents:
         collection.add(
             ids=[str(uuid.uuid1())], metadatas=doc.metadata, documents=doc.page_content
-        ) 
+        )
     db4 = Chroma(
         client=db,
         collection_name="my_collection",
@@ -69,30 +70,30 @@ def load_documents_into_database(llm_model_name, model_name, documents_path):
     # docs = db4.similarity_search(user_input)
     # print(docs[0].page_content)
     
-    retriever = db4.as_retriever()
-    # Prompt
-    template = """Answer the question based only on the following context:
-    {context}
-    Question: {question}
-    """
-    prompt = ChatPromptTemplate.from_template(template)
+    # retriever = db4.as_retriever()
+    # # Prompt
+    # template = """Answer the question based only on the following context:
+    # {context}
+    # Question: {question}
+    # """
+    # prompt = ChatPromptTemplate.from_template(template)
 
-    # Local LLM
-    ollama_llm = llm_model_name
-    model_local = ChatOllama(model=ollama_llm)
+    # # Local LLM
+    # ollama_llm = llm_model_name
+    # model_local = ChatOllama(model=ollama_llm)
 
-    # Chain
-    chain = (
-        {"context": retriever, "question": RunnablePassthrough()}
-        | prompt
-        | model_local
-        | StrOutputParser()
-    )
-    # Question
-    chain.invoke("What is the date of the start of the battle?")
+    # # Chain
+    # chain = (
+    #     {"context": retriever, "question": RunnablePassthrough()}
+    #     | prompt
+    #     | model_local
+    #     | StrOutputParser()
+    # )
+    # # Question
+    # chain.invoke("What is the date of the start of the battle?")
     
-    return db4, retriever
-    # return db4
+    # return db4, retriever
+    return db4
 
 def global_execution_process(llm_model_name, embedding_model_name, documents_path):
     # Check to see if the models available, if not attempt to pull them
@@ -108,14 +109,21 @@ def global_execution_process(llm_model_name, embedding_model_name, documents_pat
     # Creating database form documents
     try:
         print(f"Loading documents from : {documents_path}")
-        db, retriever = load_documents_into_database(llm_model_name, embedding_model_name, documents_path)
+        # db, retriever = load_documents_into_database(llm_model_name, embedding_model_name, documents_path)
+        db = load_documents_into_database(embedding_model_name, documents_path)
 
     except FileNotFoundError as e:
         print(e)
         sys.exit()
 
-    # llm = Ollama(model=llm_model_name,callbacks=[StreamingStdOutCallbackHandler()],)
-
+    user_input = "What is the date of the start of the battle"
+    docs = db.similarity_search(user_input)
+    print(docs[0].page_content)
+    
+    model = Ollama(model=llm_model_name,callbacks=[StreamingStdOutCallbackHandler()],)
+    langchain_chroma = Chroma(client=db,collection_name="my_collection",embedding_function="all-MiniLM-L6-v2")
+    retriever = langchain_chroma.as_retriever(search_type="mmr")
+    
     # # Prompt
     # template = """Answer the question based only on the following context:
     # {context}
