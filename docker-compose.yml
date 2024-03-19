@@ -30,7 +30,7 @@ services:
     environment:
       - IS_PERSISTENT=TRUE
       - ALLOW_RESET=TRUE
-      - TOKENIZERS_PARALLELISM=TRUE
+      # - TOKENIZERS_PARALLELISM=TRUE
   
   app:
     build:
@@ -41,6 +41,7 @@ services:
       - ./app:/app
     environment:
       - OLLAMA_HOST=http://proxy:1024
+      - TOKENIZERS_PARALLELISM=false
     depends_on:
       - proxy
   

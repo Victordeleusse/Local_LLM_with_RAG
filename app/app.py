@@ -1,7 +1,7 @@
-from langchain_community.document_loaders import DirectoryLoader, PyPDFLoader
+# from langchain_community.document_loaders import DirectoryLoader, PyPDFLoader
 from langchain_community.llms import Ollama
 from langchain_community.chat_models import ChatOllama
-from langchain_community.embeddings import OllamaEmbeddings
+# from langchain_community.embeddings import OllamaEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from langchain_community.vectorstores import Chroma
@@ -16,6 +16,7 @@ from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from langchain.prompts import PromptTemplate, ChatPromptTemplate
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+from transformers import AutoTokenizer, AutoModelForCausalLM
 from models import check_if_model_is_available
 from load_docs import load_documents
 import argparse
@@ -52,45 +53,19 @@ def load_documents_into_database(model_name, documents_path):
 
     print("Creating embeddings and loading documents into Chroma")
     db = chromadb.HttpClient(host="chroma", port = 8000, settings=Settings(allow_reset=True, anonymized_telemetry=False))
-    # db.reset()
-    # collection = db.create_collection("my_collection")
-    collection = db.get_or_create_collection(name="my_collection")
+    db.reset()
+    collection = db.create_collection("my_collection")
+    # collection = db.get_or_create_collection(name="my_collection")
     for doc in documents:
         collection.add(
             ids=[str(uuid.uuid1())], metadatas=doc.metadata, documents=doc.page_content
-        )
+    )
     db4 = Chroma(
         client=db,
         collection_name="my_collection",
         # embedding_function=OllamaEmbeddings(model=model_name),
         embedding_function = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2"),
     )
-    
-    # user_input = "What is the date of the start of the battle"
-    # docs = db4.similarity_search(user_input)
-    # print(docs[0].page_content)
-    
-    # retriever = db4.as_retriever()
-    # # Prompt
-    # template = """Answer the question based only on the following context:
-    # {context}
-    # Question: {question}
-    # """
-    # prompt = ChatPromptTemplate.from_template(template)
-
-    # # Local LLM
-    # ollama_llm = llm_model_name
-    # model_local = ChatOllama(model=ollama_llm)
-
-    # # Chain
-    # chain = (
-    #     {"context": retriever, "question": RunnablePassthrough()}
-    #     | prompt
-    #     | model_local
-    #     | StrOutputParser()
-    # )
-    # # Question
-    # chain.invoke("What is the date of the start of the battle?")
     
     # return db4, retriever
     return db4
@@ -116,56 +91,38 @@ def global_execution_process(llm_model_name, embedding_model_name, documents_pat
         print(e)
         sys.exit()
 
-    user_input = "What is the date of the start of the battle"
-    docs = db.similarity_search(user_input)
+    query = "What is the date of the start of the battle ?"
+    docs = db.similarity_search(query)
     print(docs[0].page_content)
     
-    model = Ollama(model=llm_model_name,callbacks=[StreamingStdOutCallbackHandler()],)
-    langchain_chroma = Chroma(client=db,collection_name="my_collection",embedding_function="all-MiniLM-L6-v2")
-    retriever = langchain_chroma.as_retriever(search_type="mmr")
+    llm = Ollama(
+        model=llm_model_name,
+        callbacks=[StreamingStdOutCallbackHandler()],
+    )
+    my_retriever = db.as_retriever(search_kwargs={"k": 8})
     
-    # # Prompt
-    # template = """Answer the question based only on the following context:
+    # response = ollama.generate(model='mistral', prompt='Why is the sky blue?')
+    response = ollama.list()
+    print(response)
+    # print(response)
+    # # Build prompt
+    # template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible. Always say "thanks for asking!" at the end of the answer. 
     # {context}
-
     # Question: {question}
-    # """
-    # prompt = ChatPromptTemplate.from_template(template)
-
-    # # Local LLM
-    # ollama_llm = llm_model_name
-    # model_local = ChatOllama(model=ollama_llm)
-
-    # # Chain
-    # chain = (
-    #     {"context": retriever, "question": RunnablePassthrough()}
-    #     | prompt
-    #     | model_local
-    #     | StrOutputParser()
-    # )
-    # # Question
-    # chain.invoke("What is the date of the start of the battle?")
-
+    # Helpful Answer:"""
+    # QA_CHAIN_PROMPT = PromptTemplate.from_template(template)
     # qa_chain = RetrievalQA.from_chain_type(
     #     llm,
-    #     retriever=db.as_retriever(search_kwargs={"k": 8}),
-    #     chain_type_kwargs={"prompt": PROMPT},
+    #     retriever=my_retriever,
+    #     return_source_documents=True,
+    #     chain_type_kwargs={"prompt": QA_CHAIN_PROMPT}
     # )
-
-    # while True:
-        # try:
-    # print("In progress ....")
-# try:
-#     user_input = input("\n\nPlease enter your question (or type 'exit' to end): ")
-#     if user_input.lower() == "exit":
-#         break
-    # user_input = "What is the date of the start of the battle"
-    # docs = db.similarity_search(user_input)
-    # print(docs[0].page_content)
-        #     qa_chain.invoke({"query": user_input})
-        # except KeyboardInterrupt:
-            # break
-        
+    
+    # result = qa_chain({"query": query})
+    # print(result)
+    # result["result"]
+    
+    
 def parse_arguments():
     parser = argparse.ArgumentParser(
                     prog='Local_LLM',

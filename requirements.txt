@@ -4,3 +4,5 @@ langchain-community==0.0.21
 pypdf==4.0.2
 requests
 tqdm==4.66.1
+transformers
+sentence_transformers
