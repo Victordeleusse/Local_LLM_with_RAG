@@ -80,63 +80,39 @@ def global_execution_process(llm_model_name, embedding_model_name, documents_pat
     except FileNotFoundError as e:
         print(e)
         sys.exit()
-
     query = "What is the date of the start of the battle ?"
-
     docs = vector_store.similarity_search(query)
     print(type(docs)) # <class 'list'>
     # docs_dict = [{"page_content": doc.page_content, "metadata": doc.metadata} for doc in docs]
     # print(docs[0].page_content)
-    
     llm = Ollama(
         model=llm_model_name,
-        callbacks=[StreamingStdOutCallbackHandler()],
     )
     my_retriever = vector_store.as_retriever(
         search_type="similarity_score_threshold",
         search_kwargs={"k": 3, "score_threshold": 0.5},
         )
-    chain = ({"context":  my_retriever | format_docs, "question": RunnablePassthrough()}
-                      | PROMPT
-                      | llm
-                      | StrOutputParser())
+    # response = ollama.generate(model=llm, prompt=PROMPT, context=docs, stream=True)
+    # print(response)
+    # response = llm.generate(prompt="Say hello for test in JSON object. Object:", stream=False)
+    # print(response['response'])
     
-    response = chain.invoke({"question": query})
-    print(response)
+    # prompt = "What is the difference between an adverb and an adjective?" 
+    qa = RetrievalQA.from_chain_type( llm=llm, chain_type="stuff", retriever=my_retriever, return_source_documents=True) 
+    response = qa(query)
+    # chain = ({"context":  my_retriever | format_docs, "question": RunnablePassthrough()}
+    #                   | PROMPT
+    #                   | llm
+    #                   | StrOutputParser())
     
-    # response = ollama.generate(model=llm, prompt=PROMPT, context=docs_dict, stream=True)
+    # response = chain.invoke(query)
+    # print(response)
+    
     # json_data = []
     # for chunk in response:
     #     # Assuming each chunk is a dictionary
     #     json_data.append(chunk)
 
-    # # Now you can serialize json_data to JSON
-    # import json
-    # json_string = json.dumps(json_data)
-    # print(json_string)
-    # # for chunk in response:
-    #     print(chunk)
-    # qa_chain = RetrievalQA.from_chain_type(
-    #     llm,
-    #     retriever=my_retriever,
-    #     chain_type_kwargs={"prompt": PROMPT},
-    # )
-    
-    # response = qa_chain.invoke({"query": query})
-    # print(response)
-    
-    # chain = ({"context": lambda x: my_retriever, "question": RunnablePassthrough()}
-    #                   | prompt
-    #                   | llm_model_name
-    #                   | StrOutputParser())
-    
-    # response = chain.invoke({"question": query})
-    # print(response)
-    # response = ollama.generate(
-    #     "model": llm_model_name,
-        
-    # )
-    # print(response)
     
 def parse_arguments():
     parser = argparse.ArgumentParser(
