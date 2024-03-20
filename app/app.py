@@ -61,6 +61,9 @@ def load_documents_into_database(model_name, documents_path):
     )
     return db4
 
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
+
 def global_execution_process(llm_model_name, embedding_model_name, documents_path):
     # Check to see if the models available, if not attempt to pull them
     try:
@@ -79,27 +82,48 @@ def global_execution_process(llm_model_name, embedding_model_name, documents_pat
         sys.exit()
 
     query = "What is the date of the start of the battle ?"
+
     docs = vector_store.similarity_search(query)
-    print(docs[0].page_content)
+    print(type(docs)) # <class 'list'>
+    # docs_dict = [{"page_content": doc.page_content, "metadata": doc.metadata} for doc in docs]
+    # print(docs[0].page_content)
     
     llm = Ollama(
         model=llm_model_name,
         callbacks=[StreamingStdOutCallbackHandler()],
     )
-    
     my_retriever = vector_store.as_retriever(
         search_type="similarity_score_threshold",
         search_kwargs={"k": 3, "score_threshold": 0.5},
         )
+    chain = ({"context":  my_retriever | format_docs, "question": RunnablePassthrough()}
+                      | PROMPT
+                      | llm
+                      | StrOutputParser())
     
-    qa_chain = RetrievalQA.from_chain_type(
-        llm,
-        retriever=my_retriever,
-        chain_type_kwargs={"prompt": PROMPT},
-    )
-    
-    response = qa_chain.invoke({"query": query})
+    response = chain.invoke({"question": query})
     print(response)
+    
+    # response = ollama.generate(model=llm, prompt=PROMPT, context=docs_dict, stream=True)
+    # json_data = []
+    # for chunk in response:
+    #     # Assuming each chunk is a dictionary
+    #     json_data.append(chunk)
+
+    # # Now you can serialize json_data to JSON
+    # import json
+    # json_string = json.dumps(json_data)
+    # print(json_string)
+    # # for chunk in response:
+    #     print(chunk)
+    # qa_chain = RetrievalQA.from_chain_type(
+    #     llm,
+    #     retriever=my_retriever,
+    #     chain_type_kwargs={"prompt": PROMPT},
+    # )
+    
+    # response = qa_chain.invoke({"query": query})
+    # print(response)
     
     # chain = ({"context": lambda x: my_retriever, "question": RunnablePassthrough()}
     #                   | prompt
