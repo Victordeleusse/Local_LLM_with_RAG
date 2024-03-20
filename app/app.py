@@ -17,7 +17,10 @@ from models import check_if_model_is_available
 from load_docs import load_documents
 import argparse
 import sys
+
 import ollama
+from ollama import Client
+
 import uuid
 
 
@@ -82,24 +85,41 @@ def global_execution_process(llm_model_name, embedding_model_name, documents_pat
         sys.exit()
     query = "What is the date of the start of the battle ?"
     docs = vector_store.similarity_search(query)
-    print(type(docs)) # <class 'list'>
-    # docs_dict = [{"page_content": doc.page_content, "metadata": doc.metadata} for doc in docs]
-    # print(docs[0].page_content)
-    llm = Ollama(
-        model=llm_model_name,
-    )
-    my_retriever = vector_store.as_retriever(
-        search_type="similarity_score_threshold",
-        search_kwargs={"k": 3, "score_threshold": 0.5},
-        )
+    # print(type(docs)) # <class 'list'>
+    # # docs_dict = [{"page_content": doc.page_content, "metadata": doc.metadata} for doc in docs]
+    print(docs[0].page_content)
+    # llm = Ollama(
+    #     model=llm_model_name,
+    #     callbacks=[StreamingStdOutCallbackHandler()],
+    # )
+    # my_retriever = vector_store.as_retriever(
+    #     search_type="similarity_score_threshold",
+    #     search_kwargs={"k": 3, "score_threshold": 0.5},
+    #     )
+    
+    # llm = Ollama(model=llm_model_name, base_url="http://localhost:11434")
+    llm = Ollama(model=llm_model_name, base_url="http://ollama:11434")
+    response = llm.generate(model=llm_model_name, prompts=["Say hello in JSON"])
+    print(response)
+    
+    # qa_chain = RetrievalQA.from_chain_type(
+    #     llm,
+    #     retriever=my_retriever,
+    #     chain_type_kwargs={"prompt": PROMPT},
+    # )
+    
+    # qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=my_retriever, return_source_documents=True) 
+    # response = qa(query)
+    
+    
+    
+    
     # response = ollama.generate(model=llm, prompt=PROMPT, context=docs, stream=True)
     # print(response)
     # response = llm.generate(prompt="Say hello for test in JSON object. Object:", stream=False)
     # print(response['response'])
     
     # prompt = "What is the difference between an adverb and an adjective?" 
-    qa = RetrievalQA.from_chain_type( llm=llm, chain_type="stuff", retriever=my_retriever, return_source_documents=True) 
-    response = qa(query)
     # chain = ({"context":  my_retriever | format_docs, "question": RunnablePassthrough()}
     #                   | PROMPT
     #                   | llm
