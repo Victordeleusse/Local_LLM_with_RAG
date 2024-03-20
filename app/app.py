@@ -1,9 +1,6 @@
-# from langchain_community.document_loaders import DirectoryLoader, PyPDFLoader
 from langchain_community.llms import Ollama
-from langchain_community.chat_models import ChatOllama
-# from langchain_community.embeddings import OllamaEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-
+from langchain.vectorstores.utils import filter_complex_metadata
 from langchain_community.vectorstores import Chroma
 import chromadb
 from chromadb.config import Settings
@@ -12,11 +9,10 @@ from langchain_community.embeddings.sentence_transformer import (
 )
 
 from langchain.chains import RetrievalQA
-from langchain_core.runnables import RunnableLambda, RunnablePassthrough
+from langchain.schema.runnable import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
-from langchain.prompts import PromptTemplate, ChatPromptTemplate
+from langchain.prompts import PromptTemplate
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-from transformers import AutoTokenizer, AutoModelForCausalLM
 from models import check_if_model_is_available
 from load_docs import load_documents
 import argparse
@@ -31,10 +27,8 @@ TEXT_SPLITTER = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=10
 PROMPT_TEMPLATE = """
 ### Instruction:
 You're helpful assistant, who answers questions based upon provided research in a distinct and clear way.
-
 ## Research:
 {context}
-
 ## Question:
 {question}
 """
@@ -63,20 +57,15 @@ def load_documents_into_database(model_name, documents_path):
     db4 = Chroma(
         client=db,
         collection_name="my_collection",
-        # embedding_function=OllamaEmbeddings(model=model_name),
         embedding_function = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2"),
     )
-    
-    # return db4, retriever
     return db4
 
 def global_execution_process(llm_model_name, embedding_model_name, documents_path):
     # Check to see if the models available, if not attempt to pull them
     try:
         check_if_model_is_available(llm_model_name)
-        print(f"MODEL CHECKED : {llm_model_name}")
         check_if_model_is_available(embedding_model_name)
-        print(f"EMBEDDING CHECKED : {embedding_model_name}")
     except Exception as e:
         print(e)
         sys.exit()
@@ -84,44 +73,46 @@ def global_execution_process(llm_model_name, embedding_model_name, documents_pat
     # Creating database form documents
     try:
         print(f"Loading documents from : {documents_path}")
-        # db, retriever = load_documents_into_database(llm_model_name, embedding_model_name, documents_path)
-        db = load_documents_into_database(embedding_model_name, documents_path)
-
+        vector_store = load_documents_into_database(embedding_model_name, documents_path)
     except FileNotFoundError as e:
         print(e)
         sys.exit()
 
     query = "What is the date of the start of the battle ?"
-    docs = db.similarity_search(query)
+    docs = vector_store.similarity_search(query)
     print(docs[0].page_content)
     
     llm = Ollama(
         model=llm_model_name,
         callbacks=[StreamingStdOutCallbackHandler()],
     )
-    my_retriever = db.as_retriever(search_kwargs={"k": 8})
     
-    # response = ollama.generate(model='mistral', prompt='Why is the sky blue?')
-    response = ollama.list()
+    my_retriever = vector_store.as_retriever(
+        search_type="similarity_score_threshold",
+        search_kwargs={"k": 3, "score_threshold": 0.5},
+        )
+    
+    qa_chain = RetrievalQA.from_chain_type(
+        llm,
+        retriever=my_retriever,
+        chain_type_kwargs={"prompt": PROMPT},
+    )
+    
+    response = qa_chain.invoke({"query": query})
     print(response)
+    
+    # chain = ({"context": lambda x: my_retriever, "question": RunnablePassthrough()}
+    #                   | prompt
+    #                   | llm_model_name
+    #                   | StrOutputParser())
+    
+    # response = chain.invoke({"question": query})
     # print(response)
-    # # Build prompt
-    # template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer. Use three sentences maximum. Keep the answer as concise as possible. Always say "thanks for asking!" at the end of the answer. 
-    # {context}
-    # Question: {question}
-    # Helpful Answer:"""
-    # QA_CHAIN_PROMPT = PromptTemplate.from_template(template)
-    # qa_chain = RetrievalQA.from_chain_type(
-    #     llm,
-    #     retriever=my_retriever,
-    #     return_source_documents=True,
-    #     chain_type_kwargs={"prompt": QA_CHAIN_PROMPT}
+    # response = ollama.generate(
+    #     "model": llm_model_name,
+        
     # )
-    
-    # result = qa_chain({"query": query})
-    # print(result)
-    # result["result"]
-    
+    # print(response)
     
 def parse_arguments():
     parser = argparse.ArgumentParser(
