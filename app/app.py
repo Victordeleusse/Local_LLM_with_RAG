@@ -29,9 +29,13 @@ TEXT_SPLITTER = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=10
 
 PROMPT_TEMPLATE = """
 ### Instruction:
-You're helpful assistant, who answers questions based upon provided research in a distinct and clear way.
+You're helpful research assistant, who answers questions based ONLY upon provided context in a clear way and easy to understand way.
+If the context is not relevant, please don't answer the question by using your own knowledge about the topic.
+Please reply with just the detailed answer. Do NOT use any external resource if you're unable to answer the question.
+
 ## Research:
 {context}
+
 ## Question:
 {question}
 """
@@ -43,7 +47,7 @@ def load_documents_into_database(model_name, documents_path):
     Loads documents from the specified directory into the Chroma database after splitting the text into chunks.
     Returns: Chroma, database with loaded documents.
     """
-
+    
     print("Loading documents")
     raw_documents = load_documents(documents_path)
     documents = TEXT_SPLITTER.split_documents(raw_documents)
@@ -83,57 +87,30 @@ def global_execution_process(llm_model_name, embedding_model_name, documents_pat
     except FileNotFoundError as e:
         print(e)
         sys.exit()
-    query = "What is the date of the start of the battle ?"
+    
+    query = "Comment decrire la bataille de Woerth pour les Francais ?"
     docs = vector_store.similarity_search(query)
     # print(type(docs)) # <class 'list'>
     # # docs_dict = [{"page_content": doc.page_content, "metadata": doc.metadata} for doc in docs]
     print(docs[0].page_content)
-    # llm = Ollama(
-    #     model=llm_model_name,
-    #     callbacks=[StreamingStdOutCallbackHandler()],
-    # )
-    # my_retriever = vector_store.as_retriever(
-    #     search_type="similarity_score_threshold",
-    #     search_kwargs={"k": 3, "score_threshold": 0.5},
-    #     )
-    
-    # llm = Ollama(model=llm_model_name, base_url="http://localhost:11434")
-    llm = Ollama(model=llm_model_name, base_url="http://ollama:11434")
-    response = llm.generate(model=llm_model_name, prompts=["Say hello in JSON"])
-    print(response)
-    
-    # qa_chain = RetrievalQA.from_chain_type(
-    #     llm,
-    #     retriever=my_retriever,
-    #     chain_type_kwargs={"prompt": PROMPT},
-    # )
-    
-    # qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=my_retriever, return_source_documents=True) 
-    # response = qa(query)
-    
-    
-    
-    
-    # response = ollama.generate(model=llm, prompt=PROMPT, context=docs, stream=True)
-    # print(response)
-    # response = llm.generate(prompt="Say hello for test in JSON object. Object:", stream=False)
-    # print(response['response'])
-    
-    # prompt = "What is the difference between an adverb and an adjective?" 
-    # chain = ({"context":  my_retriever | format_docs, "question": RunnablePassthrough()}
-    #                   | PROMPT
-    #                   | llm
-    #                   | StrOutputParser())
-    
-    # response = chain.invoke(query)
-    # print(response)
-    
-    # json_data = []
-    # for chunk in response:
-    #     # Assuming each chunk is a dictionary
-    #     json_data.append(chunk)
 
+    my_retriever = vector_store.as_retriever(
+        search_type="similarity_score_threshold",
+        search_kwargs={"k": 3, "score_threshold": 0.5},
+        )
     
+    llm = Ollama(model=llm_model_name, base_url="http://ollama:11434")
+    
+    qa_chain = RetrievalQA.from_chain_type(
+        llm,
+        retriever=my_retriever,
+        chain_type_kwargs={"prompt": PROMPT},
+    )
+    
+    response = qa_chain.invoke({"query": query})
+    print(response)
+
+
 def parse_arguments():
     parser = argparse.ArgumentParser(
                     prog='Local_LLM',
