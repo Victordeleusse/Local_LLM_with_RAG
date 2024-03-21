@@ -107,9 +107,20 @@ def global_execution_process(llm_model_name, embedding_model_name, documents_pat
         chain_type_kwargs={"prompt": PROMPT},
     )
     
-    response = qa_chain.invoke({"query": query})
-    print(response)
+    # response = qa_chain.invoke({"query": query})
+    # print(response)
 
+    while True:
+        try:
+            user_input = input(
+                "\n\nPlease enter your question (or type 'exit' to end): "
+            )
+            if user_input.lower() == "exit":
+                break
+            response = qa_chain.invoke({"query": user_input})
+            print(response)
+        except KeyboardInterrupt:
+            break
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
