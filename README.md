@@ -12,6 +12,8 @@ As the project is running through a Dockerized environment, setting up a virtual
 
 Note: The first time you run the project, it will download the necessary models from Ollama for the LLM and embeddings. This is a one-time setup process and may take some time depending on your internet connection.
 
+The specificity of this project lies in its Dockerized environment. In order to make the various API calls required for this project, the use of a reverse-proxy (Nginx) was necessary.
+
 1. Please run ``` docker-compose build ``` and then run the app docker ```docker-compose run -i app``` to launch the application and chat with the model.
 
 2. 
