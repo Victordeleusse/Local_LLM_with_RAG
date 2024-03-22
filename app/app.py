@@ -4,22 +4,17 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 import chromadb
 from chromadb.config import Settings
-# from langchain_community.embeddings.sentence_transformer import (
-#     SentenceTransformerEmbeddings,
-# )
-
 from langchain.chains import RetrievalQA
-# from langchain.schema.runnable import RunnablePassthrough
-# from langchain_core.output_parsers import StrOutputParser
 from langchain.prompts import PromptTemplate
-# from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from models import check_if_model_is_available
 from load_docs import load_documents
 import argparse
 import sys
 
-import ollama
-from ollama import Client
+from hist import getChatChain
+
+# import ollama
+# from ollama import Client
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -69,7 +64,6 @@ def global_execution_process(llm_model_name, embedding_model_name, documents_pat
     except Exception as e:
         print(e)
         sys.exit()
-        
     # Creating database form documents
     try:
         print(f"Loading documents from : {documents_path}")
@@ -80,11 +74,12 @@ def global_execution_process(llm_model_name, embedding_model_name, documents_pat
     
     llm = Ollama(model=llm_model_name, base_url="http://ollama:11434")
     
-    qa_chain = RetrievalQA.from_chain_type(
-        llm,
-        retriever=vector_store.as_retriever(),
-        chain_type_kwargs={"prompt": PROMPT},
-    )
+    qa_chain = getChatChain(llm, vector_store)
+    # qa_chain = RetrievalQA.from_chain_type(
+    #     llm,
+    #     retriever=vector_store.as_retriever(),
+    #     chain_type_kwargs={"prompt": PROMPT},
+    # )
 
     while True:
         try:

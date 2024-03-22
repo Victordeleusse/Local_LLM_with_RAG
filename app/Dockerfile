@@ -10,6 +10,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install ollama
 RUN pip install -U langchain
 RUN pip install langchain-nomic 
-# RUN pip install langchain_community
+RUN pip install langchain-core
 
 CMD ["python", "app.py"]
