@@ -61,19 +61,19 @@ def getChatChain(llm, db):
         | llm
     }
 
-    # Now we retrieve the documents
+    # Retrieve the documents
     retrieved_documents = {
         "docs": itemgetter("standalone_question") | retriever,
         "question": lambda x: x["standalone_question"],
     }
 
-    # Now we construct the inputs for the final prompt
+    # Construct the inputs for the final prompt
     final_inputs = {
         "context": lambda x: _combine_documents(x["docs"]),
         "question": itemgetter("question"),
     }
 
-    # And finally, we do the part that returns the answers
+    # Returns the answers
     answer = {
         "answer": final_inputs
         | ANSWER_PROMPT

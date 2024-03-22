@@ -21,7 +21,7 @@ def load_documents(path):
     """
     if not os.path.exists(path):
         raise FileNotFoundError(f"The specified path does not exist: {path}")
-    # # Initialize the loaders
+    # Initialize the loaders
     loaders = {
         ".pdf": DirectoryLoader(
             path,

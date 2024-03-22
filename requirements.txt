@@ -1,5 +1,4 @@
 chromadb==0.4.23
-# langchain==0.1.8
 langchain-community==0.0.21
 pypdf==4.0.2
 requests

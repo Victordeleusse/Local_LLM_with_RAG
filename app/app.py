@@ -13,28 +13,10 @@ import sys
 
 from hist import getChatChain
 
-# import ollama
-# from ollama import Client
-
 import warnings
 warnings.filterwarnings("ignore")
 
 TEXT_SPLITTER = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
-
-PROMPT_TEMPLATE = """
-### Instruction:
-You're helpful research assistant, who answers questions based ONLY upon provided research context in a clear way and easy to understand way.
-If the context from research is not relevant, please don't answer the question by using your own knowledge about the topic.
-Please reply with just the detailed answer. Do NOT use any external resource if you're unable to answer the question.
-
-## Research:
-{context}
-
-## Question:
-{question}
-"""
-
-PROMPT = PromptTemplate(template=PROMPT_TEMPLATE, input_variables=["context", "question"])
 
 def load_documents_into_database(model_name, documents_path):
     """
@@ -75,18 +57,12 @@ def global_execution_process(llm_model_name, embedding_model_name, documents_pat
     llm = Ollama(model=llm_model_name, base_url="http://ollama:11434")
     
     qa_chain = getChatChain(llm, vector_store)
-    # qa_chain = RetrievalQA.from_chain_type(
-    #     llm,
-    #     retriever=vector_store.as_retriever(),
-    #     chain_type_kwargs={"prompt": PROMPT},
-    # )
 
     while True:
         try:
             user_input = input('\n\nPlease enter your question (or type "exit" to end): ')
             if user_input.lower() == "exit":
                 break
-            # response = qa_chain.invoke({"query": user_input})
             response = qa_chain(user_input)
             print(response)
         except KeyboardInterrupt:
