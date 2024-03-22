@@ -86,7 +86,8 @@ def global_execution_process(llm_model_name, embedding_model_name, documents_pat
             user_input = input('\n\nPlease enter your question (or type "exit" to end): ')
             if user_input.lower() == "exit":
                 break
-            response = qa_chain.invoke({"query": user_input})
+            # response = qa_chain.invoke({"query": user_input})
+            response = qa_chain(user_input)
             print(response)
         except KeyboardInterrupt:
             break
