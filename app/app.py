@@ -1,6 +1,5 @@
 from langchain_community.llms import Ollama
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores.utils import filter_complex_metadata
 from langchain_community.vectorstores import Chroma
 import chromadb
 from chromadb.config import Settings
@@ -9,10 +8,10 @@ from langchain_community.embeddings.sentence_transformer import (
 )
 
 from langchain.chains import RetrievalQA
-from langchain.schema.runnable import RunnablePassthrough
-from langchain_core.output_parsers import StrOutputParser
+# from langchain.schema.runnable import RunnablePassthrough
+# from langchain_core.output_parsers import StrOutputParser
 from langchain.prompts import PromptTemplate
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+# from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from models import check_if_model_is_available
 from load_docs import load_documents
 import argparse
@@ -22,6 +21,8 @@ import ollama
 from ollama import Client
 
 import uuid
+import warnings
+warnings.filterwarnings("ignore", message="No relevant docs were retrieved using the relevance score threshold")
 
 
 
@@ -88,15 +89,15 @@ def global_execution_process(llm_model_name, embedding_model_name, documents_pat
         print(e)
         sys.exit()
     
-    query = "Comment decrire la bataille de Woerth pour les Francais ?"
-    docs = vector_store.similarity_search(query)
+    # query = "Comment decrire la bataille de Woerth pour les Francais ?"
+    # docs = vector_store.similarity_search(query)
     # print(type(docs)) # <class 'list'>
     # # docs_dict = [{"page_content": doc.page_content, "metadata": doc.metadata} for doc in docs]
-    print(docs[0].page_content)
+    # print(docs[0].page_content)
 
     my_retriever = vector_store.as_retriever(
         search_type="similarity_score_threshold",
-        search_kwargs={"k": 3, "score_threshold": 0.5},
+        search_kwargs={"k": 3, "score_threshold": 0.8},
         )
     
     llm = Ollama(model=llm_model_name, base_url="http://ollama:11434")
@@ -112,9 +113,7 @@ def global_execution_process(llm_model_name, embedding_model_name, documents_pat
 
     while True:
         try:
-            user_input = input(
-                "\n\nPlease enter your question (or type 'exit' to end): "
-            )
+            user_input = input('\n\nPlease enter your question (or type "exit" to end): ')
             if user_input.lower() == "exit":
                 break
             response = qa_chain.invoke({"query": user_input})
@@ -140,8 +139,4 @@ if __name__ == "__main__":
     args = parse_arguments()
     print(f"MODEL set up : {args.model}")
     global_execution_process(args.model, args.embedding_model, args.path)
-    
-    # response = ollama.list()
-    # response = ollama.generate(model='mistral', prompt='Why is the sky blue?')
-    # print(response)
     
