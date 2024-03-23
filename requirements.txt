@@ -4,3 +4,8 @@ pypdf==4.0.2
 requests
 tqdm==4.66.1
 sentence_transformers
+ollama
+langchain
+langchain-nomic
+langchain-core
+
